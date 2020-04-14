@@ -92,7 +92,7 @@ class TopticaLaser(Base, SimpleLaserInterface):
             return False
         return True
 
-        # TODO Add a check whether it is the laser connected
+        # TODO Add a check whether it is the laser connected -> isn't this already implemented with the "if not"-part above?
 
     def disconnect_laser(self):
         """ Close the connection to the instrument.
