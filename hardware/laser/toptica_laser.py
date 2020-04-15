@@ -92,7 +92,7 @@ class TopticaLaser(Base, SimpleLaserInterface):
             return False
         return True
 
-        # TODO Add a check whether it is the laser connected -> isn't this already implemented with the "if not"-part above?
+        # TODO Add a check whether it is the laser connected
 
     def disconnect_laser(self):
         """ Close the connection to the instrument.
@@ -231,7 +231,13 @@ class TopticaLaser(Base, SimpleLaserInterface):
 
             @return dict: dict of temperature names and value
         """
-        # TODO to implement
+        self.ser.write(b'sh temp sys\r\n')
+        temp_sys = float(self._get_terminal_string())
+        self.ser.write(b'sh temp\r\n')
+        temp_ld = float(self._get_terminal_string())
+        tempdict = {"Base Plate": temp_sys, 
+                    "Diode": temp_ld}
+        return tempdict
 
     def set_temperatures(self, temps):
         """ Set temperature for lasers with adjustable temperature for tuning
@@ -268,7 +274,13 @@ class TopticaLaser(Base, SimpleLaserInterface):
 
             @return LaserState: actual laser state
         """
-        # TODO to implement
+        if status == LaserState.ON:
+            self.ser.write(b'la on')
+        elif status == LaserState.OFF:
+            self.ser.write(b'la off')
+        else:
+            self.log.warning('The desired Laser state is not available ' + self.model_name)
+        return self.get_laser_state()
 
     def on(self):
         """ Turn laser on.
