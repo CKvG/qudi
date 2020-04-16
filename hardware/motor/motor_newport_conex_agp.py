@@ -56,13 +56,15 @@ class MotorNewportConexAGP(Base, MotorInterface):
         'AG-PR100P': 1.5,
         'AG-GON-UP': 0.45,
         'AG-GON-LP': 0.33,
-        'AG-LS25-27P': 0.4,
+        'AG-M100N': 0.5,
+        'AG-LS25-27P': 0.4
     }
 
     unit_from_model = {
         'AG-PR100P': '°',
         'AG-GON-UP': '°',
         'AG-GON-LP': '°',
+        'AG-M100N': '°',
         'AG-LS25-27P': 'mm',
     }
 
