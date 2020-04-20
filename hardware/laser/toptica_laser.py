@@ -153,7 +153,7 @@ class TopticaLaser(Base, SimpleLaserInterface):
         self.log.warning('Getting the power range is not supported by the ' + self.model_name)
         return -1
 
-    def set_power(self, power, channel=1):
+    def set_power(self, power, channel=2):
         """ Set laser power
 
             @param float power: desired laser power in watts
@@ -188,9 +188,9 @@ class TopticaLaser(Base, SimpleLaserInterface):
 
             @return float: current laser-current in amps
         """
-        # TODO to check or implement
-        self.log.warning('Getting the current is not supported by the ' + self.model_name)
-        return -1
+        self.ser.write(b'sh cur\r\n')
+        current = float(self._get_terminal_string())
+        return current
 
     def get_current_setpoint(self):
         """ Get laser current setpoint.
@@ -206,7 +206,6 @@ class TopticaLaser(Base, SimpleLaserInterface):
 
             @param float current_percent: laser current setpoint
         """
-        # TODO to check or implement
         self.log.warning('Setting the current is not supported by the ' + self.model_name)
         return -1
 
@@ -215,7 +214,7 @@ class TopticaLaser(Base, SimpleLaserInterface):
 
             @return ShutterState: laser shutter state
         """
-        # TODO to implement
+        self.log.warning('Getting the shutter state is not supported by the ' + self.model_name)
 
     def set_shutter_state(self, state):
         """ Set the desired laser shutter state.
@@ -224,7 +223,7 @@ class TopticaLaser(Base, SimpleLaserInterface):
 
             @return ShutterState: actual laser shutter state
         """
-        # TODO to implement
+        self.log.warning('Setting the shutter state is not supported by the ' + self.model_name)
 
     def get_temperatures(self):
         """ Get all available temperatures.
@@ -244,14 +243,14 @@ class TopticaLaser(Base, SimpleLaserInterface):
 
             @return dict: dict with new temperature setpoints
         """
-        # TODO to implement
+        self.log.warning('Setting the temperatures is not supported by the ' + self.model_name)
 
     def get_temperature_setpoints(self):
         """ Get temperature setpints.
 
             @return dict: dict of temperature name and setpoint value
         """
-        # TODO to implement
+        self.log.warning('Getting the temperatures setpoints is not supported by the ' + self.model_name)
 
     def get_laser_state(self):
         """ Get laser operation state
