@@ -20,7 +20,6 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
-import visa
 import pyvisa
 import time
 
@@ -49,15 +48,20 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
     def on_activate(self):
         """ Initialisation performed during activation of the module. """
         self.rm = pyvisa.ResourceManager()
+        self.mode = 'none'
         try:
             self.dev = self.rm.open_resource(self.ip_address)
             print('connected to device ' + str(self.dev.query('*IDN?')))
+            # checks if output is activated
+            if '1' in self.dev.query('outp:stat'):
+                self.is_running = True
+            elif '0' in self.dev.query('outp:stat'):
+                self.is_running = False
         except:
             print('could not connect to device!\n' + 
                   'check if it is turned on and the lan cable correctly plugged in\n' +
                   'is the IP address of the device 169.254.2.20?\n' + 
                   'if not change it to this ip address in the SGMA GUI and try again')
-                                             self._FIRMWARE_VERSION))
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module."""
@@ -71,8 +75,16 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        # TODO
-
+        try:
+            self.dev.write(':OUTPut:STATe 1;:wai')
+            print('Microwave output is activated')
+            self.is_running = True
+            self.mode = 'cw'
+            return 0
+        except:
+            print('Error while activating Microwave output')
+            return -1
+        
     def get_status(self):
         """
         Gets the current status of the MW source, i.e. the mode (cw, list or
@@ -80,7 +92,8 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
 
         @return str, bool: mode ['cw', 'list', 'sweep'], is_running [True, False]
         """
-        # TODO
+        return ('last mode used: ' + str(self.mode),
+                'output is enabled: ' + str(self.is_running))
 
     def get_limits(self):
         """ Return the device-specific limits in a nested dictionary.
@@ -95,7 +108,14 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        # TODO
+        try:
+            self.dev.write(':OUTPut:STATe 0;:wai')
+            print('Microwave output is deactivated')
+            self.is_running = False
+            return 0
+        except:
+            print('Error while deactivating Microwave output')
+            return -1
 
     def get_power(self):
         """ Gets the microwave output power.
@@ -131,6 +151,7 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
         @return int: error code (0:OK, -1:error)
         """
         # TODO
+        
     def set_list(self, frequency=None, power=None):
         """ Sets the MW mode to list mode
 
@@ -156,7 +177,7 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
         # TODO
 
     def set_sweep(self, start, stop, step, power):
-        """ Sweep from frequency start to frequency sto pin steps of width stop with power.
+        """ Sweep from frequency start to frequency stop in steps of width stop with power.
         """
         # TODO
 
@@ -192,34 +213,22 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
 
     # ================== Non interface commands: ==================
 
-    def _ask(self, question):
-        """ Ask wrapper.
-
-        @param str question: a question to the device
-
-        @return: the received answer
+    def _custom(self, msg):
+        """ Function to send other commands to the microwave source.
+        
+        If the command is a query (i.e. it includes a '?' ) the result will be printed
         """
-        return self._gpib_connection.query(question)
-
-    def _write(self, command, wait=True):
-        """ Write wrapper.
-
-        @param str command: a command to the device
-        @param bool wait: optional, is the wait statement should be skipped.
-
-        @return: str: the statuscode of the write command.
-        """
-        statuscode = self._gpib_connection.write(command)
-        if wait:
-            self._gpib_connection.write('*WAI')
-        return statuscode
+        if '?' in msg:
+            print(self.dev.query(msg))
+        else:
+            self.dev.write(msg)
 
     def on(self):
         """ Switches on any preconfigured microwave output.
 
         @return int: error code (0:OK, -1:error)
         """
-        self._write('ENBR 1')
+        self._custom('ENBR 1')
 
         dummy, is_running = self.get_status()
         while not is_running:
@@ -235,7 +244,7 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self._write('AMPR {0:f}'.format(power))
+        self._custom('pow:pow {0:f}'.format(power))
         return 0
 
     def set_frequency(self, freq=0.):
@@ -246,13 +255,14 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
         @return int: error code (0:OK, -1:error)
         """
 
-        self._write('FREQ {0:e}'.format(freq))
+        self._custom('freq {0:e}'.format(freq))
         return 0
 
     def reset_device(self):
         """ Resets the device and sets the default values."""
-        self._write('*RST')
-        self._write('ENBR 0')   # turn off Type N output
-        self._write('ENBL 0')   # turn off BNC output
+        self.mode = 'none'
+        self._custom('*RST')
+        self._custom('ENBR 0')   # turn off Type N output
+        self._custom('ENBL 0')   # turn off BNC output
 
 

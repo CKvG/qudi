@@ -36,7 +36,7 @@ class MissingOption(Enum):
 
 class ConfigOption:
     """ This class represents a configuration entry in the config file that is loaded before
-        module initalisation.
+        module initialisation.
     """
 
     def __init__(self, name=None, default=None, *, var_name=None, missing='nothing',
