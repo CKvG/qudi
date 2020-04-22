@@ -132,7 +132,7 @@ class TopticaLaser(Base, SimpleLaserInterface):
         """
         # 'pow' returns power in uW
         self.ser.write(b'sh pow\r\n')
-        power = float(self._get_terminal_string()) * 1e6
+        power = float(self._getValue(self._get_terminal_string())) * 1e6
         return power
 
     def get_power_setpoint(self):
@@ -189,7 +189,7 @@ class TopticaLaser(Base, SimpleLaserInterface):
             @return float: current laser-current in amps
         """
         self.ser.write(b'sh cur\r\n')
-        current = float(self._get_terminal_string())
+        current = float(self._getValue(self._get_terminal_string()))
         return current
 
     def get_current_setpoint(self):
@@ -231,9 +231,9 @@ class TopticaLaser(Base, SimpleLaserInterface):
             @return dict: dict of temperature names and value
         """
         self.ser.write(b'sh temp sys\r\n')
-        temp_sys = float(self._get_terminal_string())
+        temp_sys = float(self._getValue(self._get_terminal_string()))
         self.ser.write(b'sh temp\r\n')
-        temp_ld = float(self._get_terminal_string())
+        temp_ld = float(self._getValue(self._get_terminal_string()))
         tempdict = {"Base Plate": temp_sys, 
                     "Diode": temp_ld}
         return tempdict
@@ -257,8 +257,8 @@ class TopticaLaser(Base, SimpleLaserInterface):
 
         @return LaserState: laser state
         """
-        # TODO to implement
-        state = 'ON' # dummy
+        self.ser.write(b'sta la')
+        state = self._get_terminal_string()
         if 'ON' in state:
             return LaserState.ON
         elif 'OFF' in state:
@@ -304,7 +304,9 @@ class TopticaLaser(Base, SimpleLaserInterface):
 
             @return str: multiple lines of text with information about laser
         """
-        # TODO to implement
+        extra = ('Serial number: '      + self._communicate('serial')   + '\n'
+                 'Firmware Version: '   + self._communicate('ver')      + '\n'
+                 'System UP Time: '     + self._communicate('sh timer') + '\n')
 
         return 'extra'
 
@@ -313,12 +315,15 @@ class TopticaLaser(Base, SimpleLaserInterface):
     def _send(self, message):
         """ Send a message to to laser
         """
+
         pass
 
     def _communicate(self, message):
         """ Send a message to to laser
         """
-        pass
+        self.ser.write(bytes(message)+b'\r\n')
+        ret = self._get_terminal_string()
+        return ret
 
     def _get_laser_temp(self):
         """ Returns actual LD temperature
@@ -347,3 +352,26 @@ class TopticaLaser(Base, SimpleLaserInterface):
         read_buffer = str(read_buffer, 'utf-8')
         read_buffer = read_buffer[0:len(read_buffer)-5]
         return read_buffer
+
+    def _getValue(terminalString):
+        ''' If terminalString contains a value - returns value as integer or float
+            If terminalString contains NO value - returns '999'
+
+        Parameters
+        ----------
+        terminalString : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        val : TYPE
+            DESCRIPTION.
+
+        '''
+        if "=" in terminalString:
+            start_num = terminalString.find("=", 0, len(terminalString))
+            end_num = terminalString.find(" ", start_num+2, len(terminalString))
+            val = terminalString[start_num+2:end_num]
+        else:
+            val = 404
+        return val
