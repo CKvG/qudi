@@ -90,9 +90,10 @@ class TopticaLaser(Base, SimpleLaserInterface):
         if not self.ser.is_open:
             self.log.error('Serial port failure.')
             return False
+        if not (self._checkIfToptica()==True):
+            self.log.error('Connected Device is not a Toptica iBEAM Laser.')
+            return False
         return True
-
-        # TODO Add a check whether it is the laser connected
 
     def disconnect_laser(self):
         """ Close the connection to the instrument.
@@ -375,3 +376,21 @@ class TopticaLaser(Base, SimpleLaserInterface):
         else:
             val = 404
         return val
+
+    def _checkIfToptica(self):
+        '''Check if the connected device is a Toptica iBeam Laser.
+        
+        Parameters
+        ----------
+        None.
+
+        Returns
+        -------
+        ret : BOOL
+
+        '''
+        ret = self._communicate('serial')
+        if 'iBEAM' in ret:
+            return True
+        else:
+            return False
