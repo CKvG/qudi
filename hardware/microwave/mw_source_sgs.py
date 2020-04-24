@@ -51,6 +51,7 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
         self.mode = 'none'
         try:
             self.dev = self.rm.open_resource(self.ip_address)
+            
             print('connected to device ' + str(self.dev.query('*IDN?')))
             # checks if output is activated
             if '1' in self.dev.query('outp:stat'):
@@ -65,8 +66,7 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module."""
-
-        # TODO
+        self.dev.write(':OUTPut:STATe 0')
 
     def cw_on(self):
         """
@@ -100,7 +100,9 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
 
         @return MicrowaveLimits: object containing Microwave limits
         """
-        # TODO
+        if 'SGS100A' in str(self.dev.query('*IDN?')):
+             # different values in user manual, depends on if offset function is used
+            return {'amp_lower': -20, 'amp_upper': 15, 'freg_lower': 1000,'freq_upper': 6e6}
         
     def off(self):
         """ Switches off any microwave output.
