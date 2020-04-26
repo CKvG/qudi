@@ -36,14 +36,17 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
     Example config for copy-paste:
 
     mw_source_srssg:
-        module.Class: 'microwave.mw_source_srssg.MicrowaveSRSSG'
         ip_address: 'TCPIP::169.254.2.20::inst0::INSTR'
-        gpib_timeout: 10
 
+        # Are they necessary:
+        module.Class: 'microwave.mw_source_srssg.MicrowaveSRSSG'
+        gpib_timeout: 10
     """
 
     ip_address = ConfigOption('ip_address', missing='error')
-
+    model = ''
+    is_running = False
+    mode = ''
 
     def on_activate(self):
         """ Initialisation performed during activation of the module. """
@@ -51,7 +54,7 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
         self.mode = 'none'
         try:
             self.dev = self.rm.open_resource(self.ip_address)
-            
+            self.model = 'SGS100A' if 'SGS100A' in str(self.dev.query('*IDN?')) else 'unknown'
             print('connected to device ' + str(self.dev.query('*IDN?')))
             # checks if output is activated
             if '1' in self.dev.query('outp:stat'):
@@ -59,9 +62,9 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
             elif '0' in self.dev.query('outp:stat'):
                 self.is_running = False
         except:
-            print('could not connect to device!\n' + 
+            print('could not connect to device!\n' +
                   'check if it is turned on and the lan cable correctly plugged in\n' +
-                  'is the IP address of the device 169.254.2.20?\n' + 
+                  'is the IP address of the device >>{:s}<<?\n'.format(self.ip_address) +
                   'if not change it to this ip address in the SGMA GUI and try again')
 
     def on_deactivate(self):
@@ -84,7 +87,7 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
         except:
             print('Error while activating Microwave output')
             return -1
-        
+
     def get_status(self):
         """
         Gets the current status of the MW source, i.e. the mode (cw, list or
@@ -100,10 +103,13 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
 
         @return MicrowaveLimits: object containing Microwave limits
         """
-        if 'SGS100A' in str(self.dev.query('*IDN?')):
+        if self.model == 'SGS100A':
              # different values in user manual, depends on if offset function is used
-            return {'amp_lower': -20, 'amp_upper': 15, 'freg_lower': 1000,'freq_upper': 6e6}
-        
+            return {'amp_lower': -20,
+                    'amp_upper': 15,
+                    'freq_lower': 1000,
+                    'freq_upper': 6e6} # This depends on the options one bought.
+
     def off(self):
         """ Switches off any microwave output.
         Must return AFTER the device is actually stopped.
@@ -153,7 +159,7 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
         @return int: error code (0:OK, -1:error)
         """
         # TODO
-        
+
     def set_list(self, frequency=None, power=None):
         """ Sets the MW mode to list mode
 
@@ -201,7 +207,7 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
             trigger timing
         """
         # TODO
-        
+
     def trigger(self):
         """ Trigger the next element in the list or sweep mode programmatically.
 
@@ -217,7 +223,7 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
 
     def _custom(self, msg):
         """ Function to send other commands to the microwave source.
-        
+
         If the command is a query (i.e. it includes a '?' ) the result will be printed
         """
         if '?' in msg:
@@ -225,7 +231,7 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
         else:
             self.dev.write(msg)
 
-    def on(self):
+    def _on(self):
         """ Switches on any preconfigured microwave output.
 
         @return int: error code (0:OK, -1:error)
@@ -249,7 +255,7 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
         self._custom('pow:pow {0:f}'.format(power))
         return 0
 
-    def set_frequency(self, freq=0.):
+    def _set_frequency(self, freq=0.):
         """ Sets the frequency of the microwave output.
 
         @param float freq: the frequency (in Hz) set for this device
@@ -260,11 +266,9 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
         self._custom('freq {0:e}'.format(freq))
         return 0
 
-    def reset_device(self):
+    def _reset_device(self):
         """ Resets the device and sets the default values."""
         self.mode = 'none'
         self._custom('*RST')
         self._custom('ENBR 0')   # turn off Type N output
         self._custom('ENBL 0')   # turn off BNC output
-
-

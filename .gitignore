@@ -32,3 +32,6 @@
 # log files
 *.log
 *.log.*
+
+# Pylint
+.pylint.d/

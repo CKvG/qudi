@@ -90,7 +90,7 @@ class TopticaLaser(Base, SimpleLaserInterface):
         if not self.ser.is_open:
             self.log.error('Serial port failure.')
             return False
-        if not (self._checkIfToptica()==True):
+        if not self._checkIfToptica():
             self.log.error('Connected Device is not a Toptica iBEAM Laser.')
             return False
         return True
@@ -105,26 +105,26 @@ class TopticaLaser(Base, SimpleLaserInterface):
     def allowed_control_modes(self):
         """ Control modes for this laser.
         """
-        if self.model_name == Models.iBeamSmart:
-            return [ControlMode.POWER]
+        assert self.model_name == Models.iBeamSmart
+        return [ControlMode.POWER]
 
     def get_control_mode(self):
         """ Get current laser control mode.
 
             @return ControlMode: current laser control-mode
         """
-        if self.model_name == Models.iBeamSmart:
-            return ControlMode.POWER
+        assert self.model_name == Models.iBeamSmart
+        return ControlMode.POWER
 
     def set_control_mode(self, mode):
         """ Set laser control mode.
 
             @param ControlMode mode: desired control-mode
-            
+
             @return ControlMode: actual control-mode
         """
-        if self.model_name == Models.iBeamSmart:
-            return ControlMode.POWER
+        assert self.model_name == Models.iBeamSmart
+        return ControlMode.POWER
 
     def get_power(self):
         """ Get laser power.
@@ -235,7 +235,7 @@ class TopticaLaser(Base, SimpleLaserInterface):
         temp_sys = float(self._getValue(self._get_terminal_string()))
         self.ser.write(b'sh temp\r\n')
         temp_ld = float(self._getValue(self._get_terminal_string()))
-        tempdict = {"Base Plate": temp_sys, 
+        tempdict = {"Base Plate": temp_sys, \
                     "Diode": temp_ld}
         return tempdict
 
@@ -264,8 +264,8 @@ class TopticaLaser(Base, SimpleLaserInterface):
             return LaserState.ON
         elif 'OFF' in state:
             return LaserState.OFF
-        else:
-            return LaserState.UNKNOWN
+
+        return LaserState.UNKNOWN
 
     def set_laser_state(self, status):
         """ Set desited laser state.
@@ -305,19 +305,13 @@ class TopticaLaser(Base, SimpleLaserInterface):
 
             @return str: multiple lines of text with information about laser
         """
-        extra = ('Serial number: '      + self._communicate('serial')   + '\n'
-                 'Firmware Version: '   + self._communicate('ver')      + '\n'
-                 'System UP Time: '     + self._communicate('sh timer') + '\n')
+        extra = ('Serial number:    ' + self._communicate('serial')   + '\n'
+                 'Firmware Version: ' + self._communicate('ver')      + '\n'
+                 'System UP Time:   ' + self._communicate('sh timer') + '\n')
 
         return 'extra'
 
 #%% Internal methods
-
-    def _send(self, message):
-        """ Send a message to to laser
-        """
-
-        pass
 
     def _communicate(self, message):
         """ Send a message to to laser
@@ -354,43 +348,27 @@ class TopticaLaser(Base, SimpleLaserInterface):
         read_buffer = read_buffer[0:len(read_buffer)-5]
         return read_buffer
 
-    def _getValue(terminalString):
-        ''' If terminalString contains a value - returns value as integer or float
+    def _getValue(self, terminalString):
+        """ If terminalString contains a value - returns value as integer or float
             If terminalString contains NO value - returns '999'
+            @todo Agree on number
 
-        Parameters
-        ----------
-        terminalString : TYPE
-            DESCRIPTION.
+        @param str terminalString: String from serial communication
 
-        Returns
-        -------
-        val : TYPE
-            DESCRIPTION.
-
-        '''
+        @return int or float
+        """
         if "=" in terminalString:
-            start_num = terminalString.find("=", 0, len(terminalString))
-            end_num = terminalString.find(" ", start_num+2, len(terminalString))
-            val = terminalString[start_num+2:end_num]
+            start_num = terminalString.find("=")
+            end_num = terminalString.find(" ", start_num + 2)
+            val = terminalString[start_num + 2 : end_num]
         else:
             val = 404
         return val
 
     def _checkIfToptica(self):
-        '''Check if the connected device is a Toptica iBeam Laser.
-        
-        Parameters
-        ----------
-        None.
+        """Check if the connected device is a Toptica iBeam Laser.
 
-        Returns
-        -------
-        ret : BOOL
-
-        '''
+        @return bool: Wether or not laser is of type iBeam
+        """
         ret = self._communicate('serial')
-        if 'iBEAM' in ret:
-            return True
-        else:
-            return False
+        return bool('iBEAM' in ret)
