@@ -96,7 +96,7 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
         @return str, bool: mode ['cw', 'list', 'sweep'], is_running [True, False]
         """
         return ('last mode used: ' + str(self.mode),
-                'output is enabled: ' + str(self.is_running))
+                'output status: ' + str(self.is_running))
 
     def get_limits(self):
         """ Return the device-specific limits in a nested dictionary.
@@ -151,14 +151,29 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
             current power in dBm,
             current mode
         """
-        # TODO
+        try:
+            self.dev.write(':SOURce:FREQuency:CW ' + str(frequency) + ';:wai')
+            self.dev.write(':pow:pow ' + str(power) + ';:wai')
+            print('Microwave parameter set')
+            return frequency, power, self.mode
+        except:
+            print('Error while setting Microwave parameter')
+            return -1
 
     def list_on(self):
         """ Switches on the list mode.
 
         @return int: error code (0:OK, -1:error)
         """
-        # TODO
+        try:
+            self.dev.write(':OUTPut:STATe 1;:wai')
+            print('Microwave output is activated')
+            self.is_running = True
+            self.mode = 'list'
+            return 0
+        except:
+            print('Error while activating Microwave output')
+            return -1
 
     def set_list(self, frequency=None, power=None):
         """ Sets the MW mode to list mode
@@ -168,33 +183,79 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        # TODO
+        if (len(frequency) != len(power)
+            and
+            len(frequency) != 1
+            and
+            len(power) != 1):
+            raise Exception('list of frequencies and power levels must have the same length or length 1')
+        else:
+            try:
+                self.list_pos = 0
+                self.param_list = (frequency, power)
+                self.dev.write(':SOURce:FREQuency:CW ' + str(self.param_list[0][self.list_pos]) + ';:wai')
+                self.dev.write(':pow:pow ' + str(self.param_list[1][self.list_pos]) + ';:wai')
+                print('Microwave list set')
+                return 0
+            except:
+                print('Error while setting Microwave list')
+                return 1
+        # TODO: how to change to next list item (here by changing k) or add duration for each list item?
 
     def reset_listpos(self):
         """ Reset of MW List Mode position to start from first given frequency
 
         @return int: error code (0:OK, -1:error)
         """
-        # TODO
+        try:
+            self.list_pos = 0
+            return 0
+        except:
+            return -1
 
     def sweep_on(self):
         """ Switches on the sweep mode.
 
         @return int: error code (0:OK, -1:error)
         """
-        # TODO
-
+        try:
+            self.dev.write(':OUTPut:STATe 1;:wai')
+            print('Microwave sweep is activated')
+            self.is_running = True
+            self.mode = 'sweep'
+            for i in [k for k in self.sweep_list if k >= self.sweep_freq]:
+                self.sweep_freq = i
+                self.dev.write(':SOURce:FREQuency:CW ' + str(self.sweep_freq) + ';:wai')
+            return 0
+        except:
+            print('Error while activating Microwave sweep mode')
+            return -1
+        
     def set_sweep(self, start, stop, step, power):
-        """ Sweep from frequency start to frequency stop in steps of width stop with power.
+        """ Sweep from 'start' frequency to 'stop' frequency with steps of width 'step' with 'power'.
         """
-        # TODO
+        try:
+            self.sweep_list = []
+            self.sweep_freq = start
+            while self.sweep_freq <= stop:
+                self.sweep_list.append(self.sweep_freq)
+                self.sweep_freq = self.sweep_freq + step
+            self.dev.write(':SOURce:FREQuency:CW ' + str(self.sweep_list[0]) + ';:wai')
+            self.dev.write(':pow:pow ' + str(power) + ';:wai')
+            print('Microwave sweep set')
+            return 0
+        except:
+            print('Error while setting up sweep mode\n' + 
+                  'have you given "start", "stop", "step" and "power" values?')
+            return -1
+        # TODO: how to adjust duration of each frequency? (e.g. for longer integration times)
 
     def reset_sweeppos(self):
         """ Reset of MW sweep position to start
 
         @return int: error code (0:OK, -1:error)
         """
-        # TODO
+        self.sweep_freq = self.sweep_list[0]
 
     def set_ext_trigger(self, pol, timing):
         """ Set the external trigger for this device with proper polarization.
