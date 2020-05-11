@@ -55,14 +55,14 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
         try:
             self.dev = self.rm.open_resource(self.ip_address)
             self.model = 'SGS100A' if 'SGS100A' in str(self.dev.query('*IDN?')) else 'unknown'
-            print('connected to device ' + str(self.dev.query('*IDN?')))
+            self.log.info('connected to device ' + str(self.dev.query('*IDN?')))
             # checks if output is activated
             if '1' in self.dev.query('outp:stat'):
                 self.is_running = True
             elif '0' in self.dev.query('outp:stat'):
                 self.is_running = False
         except:
-            print('could not connect to device!\n' +
+            self.log.error('could not connect to device!\n' +
                   'check if it is turned on and the lan cable correctly plugged in\n' +
                   'is the IP address of the device >>{:s}<<?\n'.format(self.ip_address) +
                   'if not change it to this ip address in the SGMA GUI and try again')
@@ -80,12 +80,12 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
         """
         try:
             self.dev.write(':OUTPut:STATe 1;:wai')
-            print('Microwave output is activated')
+            self.log.info('Microwave output is activated')
             self.is_running = True
             self.mode = 'cw'
             return 0
         except:
-            print('Error while activating Microwave output')
+            self.log.error('Error while activating Microwave output')
             return -1
 
     def get_status(self):
@@ -118,11 +118,11 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
         """
         try:
             self.dev.write(':OUTPut:STATe 0;:wai')
-            print('Microwave output is deactivated')
+            self.log.info('Microwave output is deactivated')
             self.is_running = False
             return 0
         except:
-            print('Error while deactivating Microwave output')
+            self.log.error('Error while deactivating Microwave output')
             return -1
 
     def get_power(self):
@@ -154,25 +154,26 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
         try:
             self.dev.write(':SOURce:FREQuency:CW ' + str(frequency) + ';:wai')
             self.dev.write(':pow:pow ' + str(power) + ';:wai')
-            print('Microwave parameter set')
+            self.log.info('Microwave parameter set')
             return frequency, power, self.mode
         except:
-            print('Error while setting Microwave parameter')
+            self.log.error('Error while setting Microwave parameter')
             return -1
 
     def list_on(self):
         """ Switches on the list mode.
+        Must return AFTER the device is actually running.
 
         @return int: error code (0:OK, -1:error)
         """
         try:
             self.dev.write(':OUTPut:STATe 1;:wai')
-            print('Microwave output is activated')
+            self.log.info('Microwave output is activated')
             self.is_running = True
             self.mode = 'list'
             return 0
         except:
-            print('Error while activating Microwave output')
+            self.log.error('Error while activating Microwave output')
             return -1
 
     def set_list(self, frequency=None, power=None):
@@ -195,10 +196,10 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
                 self.param_list = (frequency, power)
                 self.dev.write(':SOURce:FREQuency:CW ' + str(self.param_list[0][self.list_pos]) + ';:wai')
                 self.dev.write(':pow:pow ' + str(self.param_list[1][self.list_pos]) + ';:wai')
-                print('Microwave list set')
+                self.log.info('Microwave list set')
                 return 0
             except:
-                print('Error while setting Microwave list')
+                self.log.error('Error while setting Microwave list')
                 return 1
         # TODO: how to change to next list item (here by changing k) or add duration for each list item?
 
@@ -220,7 +221,7 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
         """
         try:
             self.dev.write(':OUTPut:STATe 1;:wai')
-            print('Microwave sweep is activated')
+            self.log.info('Microwave sweep is activated')
             self.is_running = True
             self.mode = 'sweep'
             for i in [k for k in self.sweep_list if k >= self.sweep_freq]:
@@ -228,10 +229,10 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
                 self.dev.write(':SOURce:FREQuency:CW ' + str(self.sweep_freq) + ';:wai')
             return 0
         except:
-            print('Error while activating Microwave sweep mode')
+            self.log.error('Error while activating Microwave sweep mode')
             return -1
         
-    def set_sweep(self, start, stop, step, power):
+    def set_sweep(self, start = 2.7e9, stop = 3e9, step = 1e6, power = -10):
         """ Sweep from 'start' frequency to 'stop' frequency with steps of width 'step' with 'power'.
         """
         try:
@@ -242,10 +243,10 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
                 self.sweep_freq = self.sweep_freq + step
             self.dev.write(':SOURce:FREQuency:CW ' + str(self.sweep_list[0]) + ';:wai')
             self.dev.write(':pow:pow ' + str(power) + ';:wai')
-            print('Microwave sweep set')
+            self.log.info('Microwave sweep set')
             return 0
         except:
-            print('Error while setting up sweep mode\n' + 
+            self.log.error('Error while setting up sweep mode\n' + 
                   'have you given "start", "stop", "step" and "power" values?')
             return -1
         # TODO: how to adjust duration of each frequency? (e.g. for longer integration times)
@@ -288,7 +289,7 @@ class MicrowaveRSSGS(Base, MicrowaveInterface):
         If the command is a query (i.e. it includes a '?' ) the result will be printed
         """
         if '?' in msg:
-            print(self.dev.query(msg))
+            self.log.info(self.dev.query(msg))
         else:
             self.dev.write(msg)
 
