@@ -172,7 +172,7 @@ class TopticaLaserInterface(metaclass=InterfaceMetaclass):
 
     @abstract_interface_method
     def off(self):
-        """ Turn ooff laser. Does not close shutter if one is present.
+        """ Turn off laser. Does not close shutter if one is present.
           @return enum LaserState: actual laser state
         """
         pass
