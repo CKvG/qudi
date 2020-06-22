@@ -70,7 +70,6 @@ class TopticaLaserGUI(GUIBase):
     laserlogic = Connector(interface='TopticaLaserLogic')
 
     sigLaser = QtCore.Signal(bool)
-    #sigShutter = QtCore.Signal(bool)
 
     sigChannel = QtCore.Signal(ChannelSelect)
     sigPowerCh1 = QtCore.Signal(float)
@@ -86,7 +85,6 @@ class TopticaLaserGUI(GUIBase):
     sigFineA = QtCore.Signal(int)
     sigFineB = QtCore.Signal(int)
 
-    #sigCurrent = QtCore.Signal(float)
     sigCtrlMode = QtCore.Signal(ControlMode)
 
     def __init__(self, config, **kwargs):
@@ -156,8 +154,6 @@ class TopticaLaserGUI(GUIBase):
         self._mw.horizontalSliderCh1.valueChanged.connect(self.updateFromSlider_ch1)
         self._mw.horizontalSliderCh2.valueChanged.connect(self.updateFromSlider_ch2)
 
-
-        #TODO
         self._mw.horizontalSliderFrequ.valueChanged.connect(self.updateFromSlider_Frequ)
         self._mw.horizontalSliderDuty.valueChanged.connect(self.updateFromSlider_Duty)
         self._mw.horizontalSliderPeriod.valueChanged.connect(self.updateFromSlider_Period)
@@ -230,10 +226,7 @@ class TopticaLaserGUI(GUIBase):
 
 
     def configureValues(self):
-        """
-        Returns
-        -------
-        None.
+        """ Configures the maximum and minimum values.
         """
         lpr = self._laser_logic.laser_power_range
         self._mw.horizontalSliderCh1.setMinimum(int(lpr[0]))
@@ -391,6 +384,9 @@ class TopticaLaserGUI(GUIBase):
 
     @QtCore.Slot()
     def updateViews_fromAutoPulse(self):
+        """ Update the views of channel selection section according to the 
+            activation of the Autopulse feature.
+        """
         if self._mw.groupBoxAP.isChecked():
             #self._mw.groupBoxAP.setEnabled(True)
             #self._mw.channel1Label.setEnabled(True)
@@ -424,9 +420,6 @@ class TopticaLaserGUI(GUIBase):
                 self._mw.channel2Label.setEnabled(False)
                 self._mw.horizontalSliderCh2.setEnabled(False)
                 self._mw.setValueCh2.setEnabled(False)
-
-
-
 
     @QtCore.Slot()
     def updateFromSpinBox_Ch1(self):
@@ -463,7 +456,8 @@ class TopticaLaserGUI(GUIBase):
 
     @QtCore.Slot()
     def updateAutoPulse(self):
-        """"""
+        """ Send the updated Values for Autopulse feature and activate it.
+            Additionally disable the setting widgets as long as feature is active."""
         if self._mw.autopulseCheckBox.isChecked():
             if self._mw.setValueFrequ.value() < 10.0:
                 self.sigPeriod.emit(self._mw.setValuePeriod.value())
@@ -527,6 +521,7 @@ class TopticaLaserGUI(GUIBase):
 
     @QtCore.Slot()
     def updateAdvancedFeatures_View(self):
+        """ Update the view according to the Advanced Feature configuration"""
         param = self._mw.setParamAF.currentIndex()
         if param == 0:
             self._mw.FineALabel.setEnabled(True)
@@ -563,6 +558,7 @@ class TopticaLaserGUI(GUIBase):
 
     @QtCore.Slot()
     def updateAdvancedFeatures(self):
+        """ Set the Advanced Feature parameters and activate."""
         param = self._mw.setParamAF.currentIndex()
         if param == 0 & self._mw.fineCheckBox.isChecked():
             self.sigFineA.connect(self._laser_logic.set_Fine_A)
@@ -588,10 +584,12 @@ class TopticaLaserGUI(GUIBase):
 
     @QtCore.Slot()
     def updateFromSlider_FineA(self):
+        """ The user has changed the slider, update all other values from that. """
         self._mw.setValueFineA.setValue(self._mw.horizontalSliderFineA.value()/10)
         self.sigFineA.emit(int(self._mw.setValueFineA.value()))
 
     @QtCore.Slot()
     def updateFromSlider_FineB(self):
+        """ The user has changed the slider, update all other values from that. """
         self._mw.setValueFineB.setValue(self._mw.horizontalSliderFineB.value()/10)
         self.sigFineB.emit(int(self._mw.setValueFineB.value()))
