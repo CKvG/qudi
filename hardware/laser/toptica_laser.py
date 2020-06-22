@@ -132,7 +132,7 @@ class TopticaLaser(Base, TopticaLaserInterface):
     def get_power(self):
         """ Get laser power.
 
-            @return float: laser power in watts
+            @return float: laser power in milliwatts
         """
         # 'pow' returns power in uW
         ret = self._communicate('sh pow')
@@ -143,7 +143,7 @@ class TopticaLaser(Base, TopticaLaserInterface):
     def get_power_setpoint(self):
         """ Get the laser power setpoint.
 
-        @return float: laser power setpoint in watts
+        @return float: laser power setpoint in milliwatts
         """
         # TODO to check or implement
 
@@ -175,7 +175,7 @@ class TopticaLaser(Base, TopticaLaserInterface):
         #sleep(.5)
 
     def get_info_ch(self):
-        """ 
+        """ Get channel infos (not used)
         """
         #self.ser.write(b'sh ch\r\n')
         #sleep(.5)
@@ -184,7 +184,7 @@ class TopticaLaser(Base, TopticaLaserInterface):
     def set_power_ch2(self, power):
         """ Set laser power for channel 2
 
-            @param float power: desired laser power in watts
+            @param float power: desired laser power in milliwatts
         """
         powerIn_mW_str = bytes(str(power), encoding='utf8')
         self.ser.write(b'ch 2 power ' + powerIn_mW_str + b'\r\n')
@@ -324,7 +324,7 @@ class TopticaLaser(Base, TopticaLaserInterface):
         return ret
 
     def set_autopulse(self, state):
-        '''Turn on Autopulse.
+        '''Turn autopulse on/off.
 
         Parameters
         ----------
@@ -433,7 +433,7 @@ class TopticaLaser(Base, TopticaLaserInterface):
         return ret
 
     def set_fine_ON(self):
-        ''' enable FINE
+        ''' enable FINE feature
 
         Parameters
         ----------
@@ -448,7 +448,7 @@ class TopticaLaser(Base, TopticaLaserInterface):
         return ret
 
     def set_fine_OFF(self):
-        ''' disable fine
+        ''' disable FINE feature
 
         Parameters
         ----------
@@ -480,7 +480,7 @@ class TopticaLaser(Base, TopticaLaserInterface):
         return ret
 
     def set_fine_B(self, paramB):
-        ''' setting FINE parameter a
+        ''' setting FINE parameter b
 
         Parameters
         ----------
@@ -496,12 +496,11 @@ class TopticaLaser(Base, TopticaLaserInterface):
         return ret
 
     def set_skill(self):
-        ''' setting FINE parameter a
+        ''' set SKILL feature on
 
         Parameters
         ----------
-        paramB : int.
-            The b parameter of the FINE feature.
+        None.
 
         Returns
         -------
@@ -512,12 +511,11 @@ class TopticaLaser(Base, TopticaLaserInterface):
         return ret
 
     def set_skill_off(self):
-        ''' setting FINE parameter a
+        ''' set SKILL feature off
 
         Parameters
         ----------
-        paramB : int.
-            The b parameter of the FINE feature.
+        None.
 
         Returns
         -------
@@ -529,6 +527,8 @@ class TopticaLaser(Base, TopticaLaserInterface):
 
 
     def get_fineStatus(self):
+        """ Get the status of the FINE feature.
+        """
         status = self._communicate('sta fine')
         return status
 
