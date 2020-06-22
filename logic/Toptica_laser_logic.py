@@ -59,11 +59,8 @@ class TopticaLaserLogic(GenericLogic):
 
         # get laser capabilities
         self.laser_state = self._laser.get_laser_state()
-        #self.laser_shutter = self._laser.get_shutter_state()
         self.laser_can_turn_on = self.laser_state.value <= LaserState.ON.value
-        #self.laser_current_unit = self._laser.get_current_unit()
         self.laser_power_range = self._laser.get_power_range()
-        #self.laser_current_range = self._laser.get_current_range()
         self.laser_power_setpoint = self._laser.get_power_setpoint()
         self.laser_temps = self._laser.get_temperatures()
         self.laser_power = self._laser.get_power()
@@ -73,13 +70,12 @@ class TopticaLaserLogic(GenericLogic):
 
         self.laser_extra = self._laser.get_extra_info()
 
-
         self.has_shutter = self._laser.get_shutter_state() != ShutterState.NOSHUTTER
         self.init_data_logging()
         self.start_query_loop()
 
     def on_deactivate(self):
-        """ Deactivate modeule.
+        """ Deactivate module.
         """
         self.stop_query_loop()
         for i in range(5):
@@ -191,10 +187,6 @@ class TopticaLaserLogic(GenericLogic):
                 ctrl_mode = self._laser.set_control_mode(mode)
             self.log.info('Changed control mode to {0}'.format(ctrl_mode))
 
-    # @QtCore.Slot(ChannelSelect)
-    # def set_Laser_Channel(self, channel):
-    #      if
-
     @QtCore.Slot(bool)
     def set_laser_state(self, state):
         """ Turn laser on or off. """
@@ -214,13 +206,12 @@ class TopticaLaserLogic(GenericLogic):
 
     @QtCore.Slot(float)
     def set_power_ch1(self, power):
-        """ Set laser output power. """
+        """ Set laser output power at channel 1. """
         self._laser.set_power_ch1(power)
-
 
     @QtCore.Slot(float)
     def set_power_ch2(self, power):
-        """ Set laser output power. """
+        """ Set laser output power at channel 2. """
         self._laser.set_power_ch2(power)
 
     @QtCore.Slot(float)
@@ -230,7 +221,7 @@ class TopticaLaserLogic(GenericLogic):
 
     @QtCore.Slot(bool)
     def set_autopulse(self, state):
-        """ Set laser diode current. """
+        """ Set autopulse feature on/off. """
         if state:
             self._laser.set_autopulse(True)
         else:
@@ -238,27 +229,27 @@ class TopticaLaserLogic(GenericLogic):
 
     @QtCore.Slot(float)
     def set_autopulse_freq(self, freq):
-        """ Set laser diode current. """
+        """ Set autopulse frequency. """
         self._laser.set_autopulse_freq(freq)
 
     @QtCore.Slot(float)
     def set_autopulse_duty(self, duty):
-        """ Set laser diode current. """
+        """ Set autopulse duty. """
         self._laser.set_autopulse_duty(duty)
 
     @QtCore.Slot(int)
     def set_autopulse_per(self, per):
-        """ Set laser diode current. """
+        """ Set autopulse period. """
         self._laser.set_autopulse_per(per)
 
     @QtCore.Slot(int)
     def set_autopulse_width(self, width):
-        """ Set laser diode current. """
+        """ Set autopulse width. """
         self._laser.set_autopulse_width(width)
 
     @QtCore.Slot(AdvancedFeatureSelect)
     def set_advanced_features(self, mode):
-        """"""
+        """ Set advanced features on/off. """
         if mode == AdvancedFeatureSelect.FINE :
             self._laser.set_fine_ON()
         elif mode == AdvancedFeatureSelect.SKILL1:
@@ -274,10 +265,10 @@ class TopticaLaserLogic(GenericLogic):
 
     @QtCore.Slot(int)
     def set_Fine_A(self, value):
-        """ Set laser diode current. """
+        """ Set adnvanced feature parameter fine a value. """
         self._laser.set_fine_A(value)
 
     @QtCore.Slot(int)
     def set_Fine_B(self, value):
-        """ Set laser diode current. """
+        """ Set adnvanced feature parameter fine b value. """
         self._laser.set_fine_B(value)
