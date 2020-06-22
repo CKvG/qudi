@@ -21,10 +21,13 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 
 from core.module import Base
 from core.configoption import ConfigOption
-from interface.simple_laser_interface import SimpleLaserInterface
-from interface.simple_laser_interface import ControlMode
-from interface.simple_laser_interface import ShutterState
-from interface.simple_laser_interface import LaserState
+from interface.Toptica_laser_interface import TopticaLaserInterface
+from interface.Toptica_laser_interface import ControlMode
+from interface.Toptica_laser_interface import ShutterState
+from interface.Toptica_laser_interface import LaserState
+from interface.Toptica_laser_interface import ChannelSelect
+from interface.Toptica_laser_interface import AdvancedFeatureSelect
+from time import sleep
 from enum import Enum
 
 import serial
@@ -35,7 +38,7 @@ class Models(Enum):
     iBeamSmart = 0
 
 
-class TopticaLaser(Base, SimpleLaserInterface):
+class TopticaLaser(Base, TopticaLaserInterface):
     """ Qudi module to communicate with Toptica lasers.
 
     Example config for copy-paste:
@@ -60,7 +63,7 @@ class TopticaLaser(Base, SimpleLaserInterface):
 
         self.ser = serial.Serial()
         self.ser.baudrate = 115200
-        self.ser.timeout = 0.5
+        self.ser.timeout = 0.03
 
         if not self.connect_laser(self.com_port):
             self.log.error('Laser does not seem to be connected.')
@@ -90,7 +93,7 @@ class TopticaLaser(Base, SimpleLaserInterface):
         if not self.ser.is_open:
             self.log.error('Serial port failure.')
             return False
-        if not self._checkIfToptica():
+        if not (self._checkIfToptica()==True):
             self.log.error('Connected Device is not a Toptica iBEAM Laser.')
             return False
         return True
@@ -105,26 +108,26 @@ class TopticaLaser(Base, SimpleLaserInterface):
     def allowed_control_modes(self):
         """ Control modes for this laser.
         """
-        assert self.model_name == Models.iBeamSmart
-        return [ControlMode.POWER]
+        if self.model_name == Models.iBeamSmart:
+            return [ControlMode.POWER]
 
     def get_control_mode(self):
         """ Get current laser control mode.
 
             @return ControlMode: current laser control-mode
         """
-        assert self.model_name == Models.iBeamSmart
-        return ControlMode.POWER
+        if self.model_name == Models.iBeamSmart:
+            return ControlMode.POWER
 
     def set_control_mode(self, mode):
         """ Set laser control mode.
 
             @param ControlMode mode: desired control-mode
-
+            
             @return ControlMode: actual control-mode
         """
-        assert self.model_name == Models.iBeamSmart
-        return ControlMode.POWER
+        if self.model_name == Models.iBeamSmart:
+            return ControlMode.POWER
 
     def get_power(self):
         """ Get laser power.
@@ -132,8 +135,9 @@ class TopticaLaser(Base, SimpleLaserInterface):
             @return float: laser power in watts
         """
         # 'pow' returns power in uW
-        self.ser.write(b'sh pow\r\n')
-        power = float(self._getValue(self._get_terminal_string())) * 1e6
+        ret = self._communicate('sh pow')
+        #sleep(.5)
+        power = (float(self._getValue(ret)) / 1e3)
         return power
 
     def get_power_setpoint(self):
@@ -142,29 +146,49 @@ class TopticaLaser(Base, SimpleLaserInterface):
         @return float: laser power setpoint in watts
         """
         # TODO to check or implement
-        self.log.warning('Getting the power setpoint is not supported by the ' + self.model_name)
-        return -1
+
+        self.ser.write(b'sh pow\r\n')
+        #sleep(.5)
+        power = float(self._getValue(self._get_terminal_string())) * 1e3
+        return power
+        # self.log.warning('Getting the power setpoint is not supported by the ' + self.model_name)
+        # return -1
 
     def get_power_range(self):
         """ Get laser power range.
 
-            @return tuple(float, float): laser power range
+            @return tuple(float, float): laser power range in milliwatts
         """
         # TODO to check or implement
-        self.log.warning('Getting the power range is not supported by the ' + self.model_name)
-        return -1
+        power_range = (0.00, 150.00)
+        #self.log.warning('Getting the power range is not supported by the ' + self.model_name)
+        return power_range
 
-    def set_power(self, power, channel=2):
-        """ Set laser power
+    def set_power_ch1(self, power):
+        """ Set laser power for channel 1
+
+            @param float power: desired laser power in milliwatts
+            
+        """
+        powerIn_mW_str = bytes(str(power), encoding='utf8')
+        self.ser.write(b'ch 1 power ' + powerIn_mW_str + b'\r\n')
+        #sleep(.5)
+
+    def get_info_ch(self):
+        """ 
+        """
+        #self.ser.write(b'sh ch\r\n')
+        #sleep(.5)
+        return self._communicate('sh ch')
+
+    def set_power_ch2(self, power):
+        """ Set laser power for channel 2
 
             @param float power: desired laser power in watts
-            @param int channel: channel of the laser
         """
-        if self.model_name == Models.iBeamSmart:
-            channel_str = bytes(channel)
-            powerIn_uW_str = bytes([power * 1e-6])
-            self.ser.write(b'ch ' + channel_str + b' power ' +
-                           powerIn_uW_str + b'\r\n')
+        powerIn_mW_str = bytes(str(power), encoding='utf8')
+        self.ser.write(b'ch 2 power ' + powerIn_mW_str + b'\r\n')
+        #sleep(.5)
 
     def get_current_unit(self):
         """ Get unit for laser current.
@@ -190,6 +214,7 @@ class TopticaLaser(Base, SimpleLaserInterface):
             @return float: current laser-current in amps
         """
         self.ser.write(b'sh cur\r\n')
+        sleep(.5)
         current = float(self._getValue(self._get_terminal_string()))
         return current
 
@@ -235,7 +260,7 @@ class TopticaLaser(Base, SimpleLaserInterface):
         temp_sys = float(self._getValue(self._get_terminal_string()))
         self.ser.write(b'sh temp\r\n')
         temp_ld = float(self._getValue(self._get_terminal_string()))
-        tempdict = {"Base Plate": temp_sys, \
+        tempdict = {"Base Plate": temp_sys, 
                     "Diode": temp_ld}
         return tempdict
 
@@ -258,14 +283,14 @@ class TopticaLaser(Base, SimpleLaserInterface):
 
         @return LaserState: laser state
         """
-        self.ser.write(b'sta la')
-        state = self._get_terminal_string()
+        state = self._communicate('sta la')
+        #print('Laser state: ' + state)
         if 'ON' in state:
             return LaserState.ON
         elif 'OFF' in state:
             return LaserState.OFF
-
-        return LaserState.UNKNOWN
+        else:
+            return LaserState.UNKNOWN
 
     def set_laser_state(self, status):
         """ Set desited laser state.
@@ -287,36 +312,249 @@ class TopticaLaser(Base, SimpleLaserInterface):
 
             @return LaserState: actual laser state
         """
-        self.ser.write(b'la on\r\n')
-
-        return self.get_laser_state()
+        ret = self._communicate('la on')
+        return ret
 
     def off(self):
         """ Turn laser off.
 
             @return LaserState: actual laser state
         """
-        self.ser.write(b'la off\r\n')
+        ret = self._communicate('la off')
+        return ret
 
-        return self.get_laser_state()
+    def set_autopulse(self, state):
+        '''Turn on Autopulse.
+
+        Parameters
+        ----------
+        None.
+
+        Returns
+        -------
+        None.
+
+        '''
+        #print(state)
+        if state:
+            ret = self._communicate('puls on')
+        else:
+            ret = self._communicate('puls off')
+        return ret
+
+    def get_autopulseStatus(self):
+        '''Get status of autopulse feature.
+
+        Parameters
+        ----------
+        None.
+
+        Returns
+        -------
+        @return status: Status of the autopulse feature.
+
+        '''
+        status = self._communicate('sta puls')
+        return status
+
+    def set_autopulse_freq(self, freq):
+        '''Set the frequency parameter of the autopulse feature.
+
+        Parameters
+        ----------
+        freq : int.
+            Frequency of Autopulse in Hz. (Inputs such as "1e6" for 1MHz are allowed)
+
+        Returns
+        -------
+        None.
+
+        '''
+        freq = freq*1e3
+        #print(freq)
+        ret = self._communicate('puls freq ' + str(freq))
+        return ret
+
+    def set_autopulse_duty(self, duty):
+        '''Set the duty cycle parameter of the autopulse feature.
+
+        Parameters
+        ----------
+        duty : int.
+            Duty cycle of Autopulse in %.
+
+        Returns
+        -------
+        None.
+
+        '''
+        #print(duty)
+        ret = self._communicate('puls duty ' + str(duty))
+        return ret
+
+    def set_autopulse_per(self, per):
+        '''Set the periode parameter of the autopulse feature.
+
+        Parameters
+        ----------
+        per : int.
+            Periode of Autopulse in microseconds.
+
+        Returns
+        -------
+        None.
+
+        '''
+        per = per/1e6
+        #print(per)
+        ret = self._communicate('puls period ' + str(per))
+        return ret
+
+    def set_autopulse_width(self, width):
+        '''Set the width parameter of the autopulse feature.
+
+        Parameters
+        ----------
+        width : int.
+            Width of Autopulse in microseconds.
+
+        Returns
+        -------
+        None.
+
+        '''
+        width = width /1e6
+        #print(width)
+        ret = self._communicate('puls width ' + str(width))
+        return ret
+
+    def getAutopulseStatus(self):
+        ret = self._communicate('sta puls')
+        return ret
+
+    def set_fine_ON(self):
+        ''' enable FINE
+
+        Parameters
+        ----------
+        None.
+
+        Returns
+        -------
+        None.
+
+        '''
+        ret = self._communicate('fine on')
+        return ret
+
+    def set_fine_OFF(self):
+        ''' disable fine
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None.
+
+        '''
+        ret = self._communicate('fine off')
+        return ret
+
+
+    def set_fine_A(self, paramA):
+        ''' setting FINE parameter a
+
+        Parameters
+        ----------
+        paramA : int.
+            The a parameter of the FINE feature.
+
+        Returns
+        -------
+        None.
+
+        '''
+        ret = self._communicate('fine a ' + str(paramA))
+        return ret
+
+    def set_fine_B(self, paramB):
+        ''' setting FINE parameter a
+
+        Parameters
+        ----------
+        paramB : int.
+            The b parameter of the FINE feature.
+
+        Returns
+        -------
+        None.
+
+        '''
+        ret = self._communicate('fine b ' + str(paramB))
+        return ret
+
+    def set_skill(self):
+        ''' setting FINE parameter a
+
+        Parameters
+        ----------
+        paramB : int.
+            The b parameter of the FINE feature.
+
+        Returns
+        -------
+        None.
+
+        '''
+        ret = self._communicate('skill on')
+        return ret
+
+    def set_skill_off(self):
+        ''' setting FINE parameter a
+
+        Parameters
+        ----------
+        paramB : int.
+            The b parameter of the FINE feature.
+
+        Returns
+        -------
+        None.
+
+        '''
+        ret = self._communicate('skill off')
+        return ret
+
+
+    def get_fineStatus(self):
+        status = self._communicate('sta fine')
+        return status
 
     def get_extra_info(self):
         """ Extra information from laser.
 
             @return str: multiple lines of text with information about laser
         """
-        extra = ('Serial number:    ' + self._communicate('serial')   + '\n'
-                 'Firmware Version: ' + self._communicate('ver')      + '\n'
-                 'System UP Time:   ' + self._communicate('sh timer') + '\n')
+        extra = ('Serial number: '      + self._communicate('serial')   + '\n'
+                 'Firmware Version: '   + self._communicate('ver')      + '\n'
+                 'System UP Time: '     + self._communicate('sh timer') + '\n')
 
-        return 'extra'
+        return extra
 
 #%% Internal methods
 
-    def _communicate(self, message):
-        """ Send a message to to laser
+    def _send(self, message):
+        """ Send a message to the laser
         """
-        self.ser.write(bytes(message)+b'\r\n')
+
+        pass
+
+    def _communicate(self, message):
+        """ Send a message to the laser
+        """
+        self.ser.write(bytes(message, encoding='utf8')+b'\r\n')
         ret = self._get_terminal_string()
         return ret
 
@@ -327,12 +565,12 @@ class TopticaLaser(Base, SimpleLaserInterface):
         """
         self.ser.write(b'sh temp\r\n')
         temp = self._get_terminal_string()
-        print('Laser Temperature: \r\n' + temp)
+        #print('Laser Temperature: \r\n' + temp)
         return temp
 
     def _get_terminal_string(self, chunk_size=200):
         """Read all characters on the serial port and return them."""
-        if not self.port.timeout:
+        if not self.ser.timeout:
             raise TypeError('Port needs to have a timeout set!')
 
         read_buffer = b''
@@ -340,7 +578,7 @@ class TopticaLaser(Base, SimpleLaserInterface):
         while True:
             # Read in chunks. Each chunk will wait as long as specified by
             # timeout. Increase chunk_size to fail quicker
-            byte_chunk = self.port.read(size=chunk_size)
+            byte_chunk = self.ser.read(size=chunk_size)
             read_buffer += byte_chunk
             if not len(byte_chunk) == chunk_size:
                 break
@@ -349,26 +587,42 @@ class TopticaLaser(Base, SimpleLaserInterface):
         return read_buffer
 
     def _getValue(self, terminalString):
-        """ If terminalString contains a value - returns value as integer or float
-            If terminalString contains NO value - returns '999'
-            @todo Agree on number
+        ''' If terminalString contains a value - returns value as integer or float
+            If terminalString contains NO value - returns '404'
 
-        @param str terminalString: String from serial communication
+        Parameters
+        ----------
+        terminalString : TYPE
+            DESCRIPTION.
 
-        @return int or float
-        """
+        Returns
+        -------
+        val : TYPE
+            DESCRIPTION.
+
+        '''
         if "=" in terminalString:
-            start_num = terminalString.find("=")
-            end_num = terminalString.find(" ", start_num + 2)
-            val = terminalString[start_num + 2 : end_num]
+            start_num = terminalString.find("=", 0, len(terminalString))
+            end_num = terminalString.find(" ", start_num+2, len(terminalString))
+            val = terminalString[start_num+2:end_num]
         else:
             val = 404
         return val
 
     def _checkIfToptica(self):
-        """Check if the connected device is a Toptica iBeam Laser.
+        '''Check if the connected device is a Toptica iBeam Laser.
+        
+        Parameters
+        ----------
+        None.
 
-        @return bool: Wether or not laser is of type iBeam
-        """
+        Returns
+        -------
+        ret : BOOL
+
+        '''
         ret = self._communicate('serial')
-        return bool('iBEAM' in ret)
+        if 'iBEAM' in ret:
+            return True
+        else:
+            return False
