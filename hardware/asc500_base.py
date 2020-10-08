@@ -681,7 +681,7 @@ class ASC500Base:
         only for data channels that are triggered by timer; in all other cases
         the "native" buffer size is used.
         If size is too small (< 128), timer triggered data will not be buffered
-        to avoid too mucht buffer-full events.
+        to avoid too many buffer-full events.
         If buffering is enabled, no data callback function can be used for the
         channel.
 
@@ -692,6 +692,10 @@ class ASC500Base:
         size : int
             Buffer size in '32 bit items'.
         """
+        if size < 128:
+            print('If size is too small (< 128), \
+                  timer triggered data will not be buffered \
+                      to avoid too many buffer-full events.')
         self._configureDataBuffering(chn,
                                      size)
 
